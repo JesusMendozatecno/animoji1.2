@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🎵 Espacio inferior para que la barra del reproductor persistente
+   no tape botones, tarjetas ni controles del contenido. */
+body.music-player-active {
+    padding-bottom: 4.5rem;
+}
+
+@layer components {
+    /* Esquinas cortadas estilo "sci-fi" de las tarjetas del diseño */
+    .clip-tech {
+        clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    }
+
+    .clip-card {
+        clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+    }
+
+    .clip-banner {
+        clip-path: polygon(26px 0, 100% 0, 100% calc(100% - 26px), calc(100% - 26px) 100%, 0 100%, 0 26px);
+    }
+
+    .clip-auth {
+        clip-path: polygon(0 22px, 22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+    }
+
+    /* Carrusel sin barra de scroll visible */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}
