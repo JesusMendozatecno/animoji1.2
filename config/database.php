@@ -84,6 +84,33 @@ return [
             ]) : [],
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Local MariaDB (origen de la importación a Supabase)
+        |--------------------------------------------------------------------------
+        |
+        | Conexión de solo lectura a la base de datos local de XAMPP que se usa
+        | exclusivamente por el comando `php artisan animoji:importar-supabase`
+        | para copiar los datos existentes a Supabase. No lee DB_URL para no
+        | heredar la conexión de Postgres.
+        |
+        */
+
+        'mariadb_local' => [
+            'driver' => 'mariadb',
+            'host' => env('DB_LOCAL_HOST', '127.0.0.1'),
+            'port' => env('DB_LOCAL_PORT', '3306'),
+            'database' => env('DB_LOCAL_DATABASE', 'animoji'),
+            'username' => env('DB_LOCAL_USERNAME', 'root'),
+            'password' => env('DB_LOCAL_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
