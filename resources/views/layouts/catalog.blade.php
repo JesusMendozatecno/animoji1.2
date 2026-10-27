@@ -39,12 +39,14 @@
         ];
         $accent = match ($theme) {
             'mono' => 'bg-white text-black',
+            'purple' => 'bg-purple-600 text-white shadow-[0_0_18px_rgba(168,85,247,0.55)]',
             'blue' => 'bg-blue-600 text-white shadow-[0_0_18px_rgba(37,99,235,0.55)]',
             'teal' => 'bg-teal-600 text-white shadow-[0_0_18px_rgba(20,184,166,0.55)]',
             default => 'bg-gradient-to-r from-fuchsia-600 to-red-500 text-white shadow-[0_0_18px_rgba(255,38,60,0.45)]',
         };
         $quoteBorder = match ($theme) {
             'mono' => 'border-white/60',
+            'purple' => 'border-purple-400/70',
             'blue' => 'border-blue-400/70',
             'teal' => 'border-teal-400/70',
             default => 'border-red-500/70',

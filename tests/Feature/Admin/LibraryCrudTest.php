@@ -9,6 +9,8 @@ use App\Models\MusicTrack;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -404,5 +406,89 @@ class LibraryCrudTest extends TestCase
             ]);
 
         $this->assertDatabaseMissing('games', ['title' => 'Juego fuera de rango']);
+    }
+
+    // ─────────────────────────────────────────────
+    // 🎵 Subida de audio e imagen de la canción
+    // ─────────────────────────────────────────────
+
+    /** WAV mínimo con firma RIFF/WAVE válida para las validaciones. */
+    private function wavContent(): string
+    {
+        $samples = str_repeat("\x7f", 2000);
+
+        return 'RIFF'.pack('V', 36 + strlen($samples)).'WAVE'
+            .'fmt '.pack('V', 16).pack('v', 1).pack('v', 1)
+            .pack('V', 8000).pack('V', 8000).pack('v', 1).pack('v', 8)
+            .'data'.pack('V', strlen($samples)).$samples;
+    }
+
+    /** PNG mínimo (1x1) válido. */
+    private function pngContent(): string
+    {
+        return base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+        );
+    }
+
+    /**
+     * Registrar una canción con archivo de audio e imagen de portada debe
+     * guardar ambos en el disco público con URL /storage/... utilizable
+     * por el reproductor (regresión: la ruta sin /storage daba 404).
+     */
+    public function test_superadmin_can_register_a_music_track_with_audio_and_cover_files(): void
+    {
+        Storage::fake('public');
+
+        // El formulario debe ofrecer la subida de imagen de la canción
+        $this->actingAs($this->makeUser('superadmin'))
+            ->get('/admin/biblioteca/musica')
+            ->assertOk()
+            ->assertSee('Imagen de la canción', false)
+            ->assertSee('Archivo de audio', false);
+
+        $response = $this->actingAs($this->makeUser('superadmin'))
+            ->post('/admin/biblioteca/musica', [
+                'title' => 'Canción con Archivos',
+                'artist' => 'Artista Con Archivos',
+                'audio_file' => UploadedFile::fake()->createWithContent('cancion.wav', $this->wavContent()),
+                'cover_file' => UploadedFile::fake()->createWithContent('portada.png', $this->pngContent()),
+            ]);
+
+        $response->assertRedirect('/admin/biblioteca/musica');
+        $response->assertSessionHas('success');
+
+        $track = MusicTrack::query()->where('title', 'Canción con Archivos')->firstOrFail();
+
+        $this->assertStringStartsWith('/storage/media/audios/', $track->audio_url);
+        $this->assertStringStartsWith('/storage/media/portadas/', $track->cover);
+
+        Storage::disk('public')->assertExists(str_replace('/storage/', '', $track->audio_url));
+        Storage::disk('public')->assertExists(str_replace('/storage/', '', $track->cover));
+
+        // El catálogo debe ofrecer la pista al reproductor con su botón de play
+        $this->actingAs($this->makeUser('user'))
+            ->get('/musica')
+            ->assertOk()
+            ->assertViewHas(
+                'musicPlayerTracks',
+                fn ($tracks) => $tracks->pluck('url')->contains($track->audio_url),
+            );
+    }
+
+    /** Un formato de imagen no admitido debe rechazarse con mensaje en español. */
+    public function test_invalid_cover_file_is_rejected(): void
+    {
+        $this->from('/admin/biblioteca/musica')
+            ->actingAs($this->makeUser('superadmin'))
+            ->post('/admin/biblioteca/musica', [
+                'title' => 'Portada Inválida',
+                'artist' => 'Artista',
+                'cover_file' => UploadedFile::fake()->createWithContent('nota.txt', 'no es una imagen'),
+            ])
+            ->assertRedirect('/admin/biblioteca/musica')
+            ->assertSessionHasErrors('cover_file');
+
+        $this->assertDatabaseMissing('music_tracks', ['title' => 'Portada Inválida']);
     }
 }

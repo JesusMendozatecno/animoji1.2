@@ -24,6 +24,7 @@ $themes = [
     'morado' => [168, 85, 247],
     'rosado' => [236, 72, 153],
     'vinotinto' => [185, 28, 60],
+    'amarillo' => [234, 179, 8],
 ];
 
 /** Degradado vertical oscuro → color + halo */

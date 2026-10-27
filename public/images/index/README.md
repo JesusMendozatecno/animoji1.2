@@ -41,7 +41,7 @@ Si quieres regenerar las de prueba: `php scripts/generate_home_placeholders.php`
 ## 🎨 Temas por color (personalización del index)
 
 Además de estas imágenes (por defecto), existen carpetas por color:
-`rojo/`, `azul/`, `aquamarine/`, `azul oscuro/`, `morado/`, `rosado/`, `vinotinto/`.
+`rojo/`, `azul/`, `aquamarine/`, `azul oscuro/`, `morado/`, `rosado/`, `vinotinto/`, `amarillo/`.
 Cada usuario puede elegir un color en **Cuenta → Personalización → Imágenes del index**;
 al hacerlo, el index usa los archivos de esa carpeta (mismos nombres que aquí).
 Regenerar sus imágenes de prueba: `php scripts/generate_index_theme_placeholders.php`

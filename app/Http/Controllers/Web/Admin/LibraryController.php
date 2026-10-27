@@ -136,6 +136,9 @@ class LibraryController extends Controller
         // 🎵 Subida real de archivo de audio (si se adjunta en vez de URL)
         $this->handleAudioUpload($request, $data);
 
+        // 🖼️ Subida de imagen de la canción (portada)
+        $this->handleCoverUpload($request, $data);
+
         DB::transaction(function () use ($config, $data) {
             /** @var class-string<Model> $model */
             $model = $config['model'];
@@ -169,6 +172,9 @@ class LibraryController extends Controller
 
         // 🎵 Sustituir/añadir archivo de audio (si se adjunta en vez de URL)
         $this->handleAudioUpload($request, $data);
+
+        // 🖼️ Sustituir la imagen de la canción (si se adjunta una nueva)
+        $this->handleCoverUpload($request, $data);
 
         DB::transaction(function () use ($record, $data) {
             // El slug solo cambia si el título cambió y no está vacío
@@ -279,6 +285,7 @@ class LibraryController extends Controller
                 'genre' => ['nullable', 'string', 'max:60'],
                 'audio_url' => ['nullable', 'url', 'max:255'],
                 'audio_file' => ['nullable', 'file', 'mimes:mp3,ogg,wav,m4a,aac,flac', 'max:51200'],
+                'cover_file' => ['nullable', 'file', 'image', 'max:4096'],
                 'duration' => ['nullable', 'integer', 'min:0', 'max:86400'],
                 'release_year' => ['nullable', 'integer', 'min:1900', 'max:2100'],
                 'status' => ['nullable', 'string', 'in:published,draft'],
@@ -314,6 +321,8 @@ class LibraryController extends Controller
             'audio_url.url' => 'La URL del audio no es válida.',
             'audio_file.mimes' => 'Formato de audio no admitido: usa MP3, OGG, WAV, M4A, AAC o FLAC.',
             'audio_file.max' => 'El archivo de audio no puede superar los 50 MB.',
+            'cover_file.image' => 'La imagen de la canción debe ser un archivo JPG, PNG o WEBP.',
+            'cover_file.max' => 'La imagen de la canción no puede superar los 4 MB.',
             'genre.max' => 'El género no puede superar los 60 caracteres.',
             'download_url.url' => 'La URL de descarga no es válida.',
             'duration.integer' => 'La duración debe expresarse en segundos (número).',
@@ -424,7 +433,35 @@ class LibraryController extends Controller
             'public',
         );
 
-        // Ruta relativa con barra inicial → el reproductor la usa tal cual
-        $data['audio_url'] = '/'.ltrim($path, '/');
+        // URL pública real (disk público + symlink /storage) → la usa el reproductor
+        $data['audio_url'] = '/storage/'.ltrim($path, '/');
+    }
+
+    /**
+     * Sube la imagen de la canción (portada) al disco público y asigna su
+     * URL pública a $data['cover']. Nombre controlado por el servidor.
+     */
+    private function handleCoverUpload(Request $request, array &$data): void
+    {
+        if (! $request->hasFile('cover_file')) {
+            return;
+        }
+
+        $request->validate([
+            'cover_file' => ['file', 'image', 'max:4096'],
+        ], [
+            'cover_file.image' => 'La imagen de la canción debe ser un archivo JPG, PNG o WEBP.',
+            'cover_file.max' => 'La imagen de la canción no puede superar los 4 MB.',
+        ]);
+
+        $file = $request->file('cover_file');
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $path = $file->storeAs(
+            'media/portadas',
+            now()->format('Ymd_His').'_'.bin2hex(random_bytes(5)).'.'.$ext,
+            'public',
+        );
+
+        $data['cover'] = '/storage/'.ltrim($path, '/');
     }
 }

@@ -6,11 +6,11 @@
 @php
     $theme = match ($section) {
         'manga' => [
-            'card' => 'bg-[#101010]',
-            'borderHover' => 'hover:border-white/40',
-            'glow' => 'hover:shadow-[0_0_22px_rgba(255,255,255,0.12)]',
-            'highlight' => 'text-white',
-            'badge' => 'bg-white text-black',
+            'card' => 'bg-[#120d20]',
+            'borderHover' => 'hover:border-purple-500/60',
+            'glow' => 'hover:shadow-[0_0_25px_rgba(168,85,247,0.35)]',
+            'highlight' => 'text-purple-400',
+            'badge' => 'bg-purple-600 text-white shadow-[0_0_14px_rgba(168,85,247,0.55)]',
         ],
         'musica' => [
             'card' => 'bg-[#0e1226]',

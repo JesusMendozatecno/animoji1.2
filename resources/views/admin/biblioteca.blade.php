@@ -41,7 +41,8 @@
             ['name' => 'album', 'label' => 'Álbum', 'type' => 'text'],
             ['name' => 'cover', 'label' => 'Portada (ruta o URL)', 'type' => 'text', 'hint' => 'Ej.: /images/galeria/portada.jpg'],
             ['name' => 'audio_url', 'label' => 'URL del audio', 'type' => 'url'],
-            ['name' => 'audio_file', 'label' => 'Archivo de audio (máx. 50 MB)', 'type' => 'file'],
+            ['name' => 'audio_file', 'label' => 'Archivo de audio (máx. 50 MB)', 'type' => 'file', 'accept' => '.mp3,.ogg,.wav,.m4a,.aac,.flac'],
+            ['name' => 'cover_file', 'label' => 'Imagen de la canción (JPG, PNG, WEBP · máx. 4 MB)', 'type' => 'file', 'accept' => 'image/*'],
             ['name' => 'duration', 'label' => 'Duración (segundos)', 'type' => 'number', 'min' => 0, 'max' => 86400],
             ['name' => 'release_year', 'label' => 'Año', 'type' => 'number', 'min' => 1900, 'max' => 2100],
         ],
@@ -49,7 +50,7 @@
     $fields = $fieldSets[$section];
     $detailFields = array_values(array_filter(
         $fields,
-        fn (array $field): bool => ! in_array($field['name'], ['title', 'cover', 'audio_file'], true),
+        fn (array $field): bool => ! in_array($field['name'], ['title', 'cover', 'audio_file', 'cover_file'], true),
     ));
     $oldRecordId = old('_record_id');
     $formAction = $oldRecordId
@@ -217,7 +218,7 @@
                                     @endforeach
                                 </select>
                             @elseif ($field['type'] === 'file')
-                                <input id="library-{{ $field['name'] }}" name="{{ $field['name'] }}" type="file" accept=".mp3,.ogg,.wav,.m4a,.aac,.flac" aria-invalid="{{ $errors->has($field['name']) ? 'true' : 'false' }}" class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-white">
+                                <input id="library-{{ $field['name'] }}" name="{{ $field['name'] }}" type="file" accept="{{ $field['accept'] ?? '.mp3,.ogg,.wav,.m4a,.aac,.flac' }}" aria-invalid="{{ $errors->has($field['name']) ? 'true' : 'false' }}" class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-white">
                             @else
                                 <input id="library-{{ $field['name'] }}" name="{{ $field['name'] }}" type="{{ $field['type'] }}" value="{{ old($field['name']) }}" @if (isset($field['min'])) min="{{ $field['min'] }}" @endif @if (isset($field['max'])) max="{{ $field['max'] }}" @endif @if (isset($field['step'])) step="{{ $field['step'] }}" @endif @required($field['required'] ?? false) placeholder="{{ $field['hint'] ?? '' }}" aria-invalid="{{ $errors->has($field['name']) ? 'true' : 'false' }}" class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition focus:border-blue-400/50">
                             @endif

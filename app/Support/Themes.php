@@ -2,6 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\Character;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+
 /**
  * Temas de color de ANIMOJI.
  *
@@ -25,12 +29,13 @@ class Themes
         'rosado' => '#ec4899',
         'azul oscuro' => '#6366f1',
         'vinotinto' => '#b91c3c',
+        'amarillo' => '#eab308',
     ];
 
     /**
      * Orden en que rotan los diseños de login/registro (una visita → un tema).
      */
-    public const LOGIN_ORDER = ['rojo', 'morado', 'azul', 'aquamarine', 'rosado', 'azul oscuro', 'blanco', 'vinotinto'];
+    public const LOGIN_ORDER = ['rojo', 'morado', 'azul', 'aquamarine', 'rosado', 'azul oscuro', 'blanco', 'vinotinto', 'amarillo'];
 
     /**
      * Archivos dentro de cada carpeta de login (null = no existe, usa el de rojo).
@@ -44,36 +49,124 @@ class Themes
         'azul oscuro' => ['bg' => 'fondo azul oscuro.png', 'character' => 'azul oscuro.png', 'logo' => null],
         'blanco' => ['bg' => 'fondo blanco.png', 'character' => 'blanco.png', 'logo' => null],
         'vinotinto' => ['bg' => 'fondo vinotinto.png', 'character' => 'vinotinto.png', 'logo' => null],
+        'amarillo' => ['bg' => 'fondo amarillo.png', 'character' => 'amarillo.png', 'logo' => null],
     ];
 
     /**
      * Lista de temas del index para el selector de personalización.
+     * Fusiona los colores fijos con los personajes activos de la BD.
      *
-     * @return array<string, array{label: string, hex: string}>
+     * @return array<string, array{label: string, hex: string, character?: string, background?: string}>
      */
     public static function indexThemes(): array
     {
-        return collect(self::COLORS)
+        $themes = collect(self::COLORS)
             ->map(fn (string $hex, string $key) => [
                 'label' => ucfirst($key),
                 'hex' => $hex,
-            ])
-            ->all();
+            ]);
+
+        foreach (self::characters() as $key => $character) {
+            $existing = $themes->get($key);
+
+            $themes->put($key, [
+                'label' => $character['label'],
+                'hex' => $character['hex'],
+                'character' => $character['character'],
+                'background' => $character['background'],
+                // Un personaje de BD no pisa el label fijo si ya existía
+                'label_fijo' => $existing['label'] ?? null,
+            ]);
+        }
+
+        return $themes->map(fn (array $theme) => array_filter(
+            $theme,
+            fn ($value) => $value !== null,
+        ))->all();
     }
 
     /**
-     * Temas de login que YA tienen imágenes (carpeta con fondo y personaje).
+     * Personajes activos de la BD indexados por su clave de tema.
+     * Solo se incluyen si tienen imagen; el fondo es opcional.
+     * Si la tabla no existe (p. ej. en pruebas sin migrar) se ignora.
+     *
+     * @return array<string, array{label: string, hex: string, character: string, background: string|null, name: string}>
+     */
+    public static function characters(): array
+    {
+        if (! self::charactersTableReady()) {
+            return [];
+        }
+
+        return Character::query()
+            ->where('is_active', true)
+            ->whereNotNull('image_path')
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (Character $character) => is_file(public_path(ltrim($character->image_path, '/'))))
+            ->mapWithKeys(function (Character $character) {
+                $key = self::characterKey($character->directory);
+                $background = $character->background_path;
+
+                return [$key => [
+                    'label' => $character->theme_name,
+                    'hex' => $character->color_hex,
+                    'character' => '/images/personajes/'.rawurlencode($character->directory).'/'.rawurlencode(basename($character->image_path)),
+                    'background' => $background && is_file(public_path(ltrim($background, '/')))
+                        ? '/images/personajes/'.rawurlencode($character->directory).'/'.rawurlencode(basename($background))
+                        : null,
+                    'name' => $character->character_name,
+                ]];
+            })
+            ->all();
+    }
+
+    /** Clave canónica de un personaje (carpeta segura → nombre de tema). */
+    public static function characterKey(string $directory): string
+    {
+        return trim(mb_strtolower($directory));
+    }
+
+    /** true si la tabla de personajes existe y es consultable. */
+    private static function charactersTableReady(): bool
+    {
+        static $ready = null;
+
+        if ($ready === null) {
+            try {
+                DB::getSchemaBuilder()->hasTable('characters');
+                $ready = true;
+            } catch (\Throwable) {
+                $ready = false;
+            }
+        }
+
+        return $ready;
+    }
+
+    /**
+     * Temas de login que YA tienen imágenes (carpeta con fondo y personaje),
+     * incluidos los personajes activos registrados en la BD.
      *
      * @return list<string>
      */
     public static function availableLoginThemes(): array
     {
-        return array_keys(array_filter(
+        $static = array_keys(array_filter(
             self::LOGIN_FILES,
             fn (array $files, string $key) => is_file(public_path('images/login/'.$key.'/'.$files['bg']))
                 && is_file(public_path('images/login/'.$key.'/'.$files['character'])),
             ARRAY_FILTER_USE_BOTH,
         ));
+
+        // Personajes de la BD que tengan fondo (el login usa fondo + personaje)
+        $characters = array_keys(array_filter(
+            self::characters(),
+            fn (array $character) => $character['background'] !== null,
+        ));
+
+        // Se agregan al final de la rotación, sin duplicar claves
+        return array_values(array_unique([...$static, ...$characters]));
     }
 
     /**
@@ -94,6 +187,25 @@ class Themes
         $next = ((int) $request->session()->get('login_theme_idx', -1) + 1) % count($available);
         $request->session()->put('login_theme_idx', $next);
         $key = $available[$next];
+
+        // ── Tema dinámico: personaje registrado desde el panel admin ──
+        $character = self::characters()[$key] ?? null;
+        if ($character !== null) {
+            $colorLogo = 'logo-'.$key.'.png';
+            $logo = is_file(public_path('images/logo/'.$colorLogo))
+                ? '/images/logo/'.rawurlencode($colorLogo)
+                : '/images/login/rojo/'.rawurlencode('logo.png');
+
+            return [
+                'key' => $key,
+                'label' => $character['label'],
+                'hex' => $character['hex'],
+                'bg' => $character['background'],
+                'character' => $character['character'],
+                'logo' => $logo,
+            ];
+        }
+
         $files = self::LOGIN_FILES[$key] ?? self::LOGIN_FILES['rojo'];
 
         $url = fn (string $folder, ?string $file) => $file

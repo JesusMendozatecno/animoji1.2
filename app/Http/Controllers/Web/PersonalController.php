@@ -612,7 +612,7 @@ class PersonalController extends Controller
                 'pending' => 'Pendientes de manga',
                 'continue' => 'Seguir leyendo manga',
                 'indexRoute' => 'manga.index',
-                'theme' => 'mono',
+                'theme' => 'purple',
                 'quote' => 'Tus mangas favoritos en un solo lugar.',
             ],
             'musica' => [

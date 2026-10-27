@@ -129,7 +129,7 @@ class CatalogController extends Controller
                 'label' => 'Manga',
                 'indexRoute' => 'manga.index',
                 'showRoute' => 'manga.show',
-                'theme' => 'mono',
+                'theme' => 'purple',
                 'quote' => 'El manga no es solo una historia, es un mundo por descubrir.',
                 'heroBadge' => 'Manga',
                 'heroTitle' => 'Explora el mundo del manga',

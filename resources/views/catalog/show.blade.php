@@ -6,7 +6,7 @@
 @php
     $meta = match ($type) {
         'anime' => ['label' => 'Anime', 'indexRoute' => 'anime.index', 'accent' => 'from-fuchsia-500 to-purple-500'],
-        'manga' => ['label' => 'Manga', 'indexRoute' => 'manga.index', 'accent' => 'from-amber-400 to-orange-500'],
+        'manga' => ['label' => 'Manga', 'indexRoute' => 'manga.index', 'accent' => 'from-purple-500 to-fuchsia-500'],
         'music' => ['label' => 'Música', 'indexRoute' => 'music.index', 'accent' => 'from-cyan-400 to-blue-500'],
         default => ['label' => 'Juegos', 'indexRoute' => 'games.index', 'accent' => 'from-emerald-400 to-teal-500'],
     };
